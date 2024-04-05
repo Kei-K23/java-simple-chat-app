@@ -8,8 +8,9 @@ public class ChatServer {
     private static List<ClientHandler> clients = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
+        ServerSocket serverSocket = null;
         try {
-            ServerSocket serverSocket = new ServerSocket(5000);
+            serverSocket = new ServerSocket(5555);
 
             System.out.println("Server started. Waiting for client connection.");
 
@@ -25,7 +26,20 @@ public class ChatServer {
             }
         } catch (IOException e) {
             System.err.println("An error occurred while creating the socket server : " + e.getMessage());
+            try {
+                serverSocket.close();
+            } catch (IOException i) {
+                i.printStackTrace();
+            }
             System.exit(1);
+        } finally {
+            if (serverSocket != null) {
+                try {
+                    serverSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
