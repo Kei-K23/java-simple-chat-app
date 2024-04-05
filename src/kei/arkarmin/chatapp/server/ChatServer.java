@@ -8,82 +8,48 @@ public class ChatServer {
     private static List<ClientHandler> clients = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = null;
-        try {
-            serverSocket = new ServerSocket(5555);
+        ServerSocket serverSocket = new ServerSocket(5555);
+        System.out.println("Server started. Waiting for clients...");
 
-            System.out.println("Server started. Waiting for client connection.");
+        while (true) {
+            Socket clientSocket = serverSocket.accept();
+            System.out.println("Client connected: " + clientSocket);
 
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected : " + clientSocket);
-
-                ClientHandler clientThread = new ClientHandler(clientSocket, clients);
-
-                clients.add(clientThread);
-
-                new Thread(clientThread).start();
-            }
-        } catch (IOException e) {
-            System.err.println("An error occurred while creating the socket server : " + e.getMessage());
-            try {
-                serverSocket.close();
-            } catch (IOException i) {
-                i.printStackTrace();
-            }
-            System.exit(1);
-        } finally {
-            if (serverSocket != null) {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            ClientHandler clientThread = new ClientHandler(clientSocket, clients);
+            clients.add(clientThread);
+            new Thread(clientThread).start();
         }
     }
 }
 
 class ClientHandler implements Runnable {
-
-    private Socket socket;
+    private Socket clientSocket;
     private List<ClientHandler> clients;
-    private BufferedReader in;
     private PrintWriter out;
+    private BufferedReader in;
 
-    public ClientHandler(Socket socket, List<ClientHandler> clients) {
-        this.socket = socket;
+    public ClientHandler(Socket socket, List<ClientHandler> clients) throws IOException {
+        this.clientSocket = socket;
         this.clients = clients;
-
-        try {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
-        } catch (IOException e) {
-            System.err.println("An error occurred while creating the client handler : " + e.getMessage());
-            System.exit(1);
-        }
+        this.out = new PrintWriter(clientSocket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     }
 
     public void run() {
         try {
-            String message;
-
-            while ((message = in.readLine()) != null) {
-                System.out.println("Received message : " + message);
-
-                for (ClientHandler client : clients) {
-                    if (client != this) {
-                        client.out.println(message);
-                    }
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                for (ClientHandler aClient : clients) {
+                    aClient.out.println(inputLine);
                 }
             }
         } catch (IOException e) {
-            System.err.println("An error occurred: " + e.getMessage());
+            System.out.println("An error occurred: " + e.getMessage());
         } finally {
             try {
                 in.close();
                 out.close();
-                socket.close();
+                clientSocket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
